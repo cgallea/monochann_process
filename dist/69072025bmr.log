@@ -1,0 +1,17 @@
+
+Band-Pass Filter [200.0 - 2000.0 Hz] over Raw Data
+Spectral Whitening - Method: zca over Raw Data
+Parametric Equalizer - Gain: [-26 0 0 0 50 0 0 0 0] over Raw Data
+Automatic Gain Control (AGC) - Weigths: 50 over Band Pass
+Manual Gain filter over Band Pass
+STA/LTA filter - Relation: 5/20 samples over Band Pass
+Instant Amplitude (Envelope)  over Band Pass
+Instant Frequency  over Band Pass
+Phase cosine  over Band Pass
+Phase acceleration  over Band Pass
+Wiener Filter over Spectral Whitening
+Laplace Filter over Band Pass
+y-Derivative Filter over Band Pass
+Boomer Deconvolution over Band Pass
+Bottom Window between traces 556 and 591
+Bottom Window between samples 145 and 204
