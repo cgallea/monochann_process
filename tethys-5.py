@@ -1,20 +1,18 @@
 import numpy as np
 import os
 import matplotlib as mpl
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button as Btn, Slider, RectangleSelector
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from tkinter import *
-from tkinter import ttk, messagebox, filedialog, simpledialog
+from tkinter import ttk, messagebox, filedialog
 import segyio
 import pandas as pd
 from scipy import signal
 from scipy.ndimage import shift
 from scipy import interpolate
 from scipy.linalg import toeplitz
-from scipy.signal import lfilter, ricker
-from scipy.signal import chirp, fftconvolve
+from scipy.signal import lfilter, chirp, fftconvolve
 
 import csv
 import ezdxf
@@ -78,31 +76,49 @@ class SeismicApp:
     def _setup_ui(self):
 
         """Configura a interface principal da aplicação."""
-        self.txt_edit = Text(self.root)
+
+        self.txt_edit = Text(self.root, bg="lightyellow", fg="blue", font=("Arial", 9, "bold"),
+                selectbackground="orange", selectforeground="white", width=40, height=10)
+
         self.txt_edit.grid(row=0, column=1, sticky="nsew")
 
-        self.fr_buttons = Frame(self.root, relief=RAISED, bd=2, bg='#ADEAEA')
+        self.fr_buttons = Frame(self.root, relief=RAISED, bd=2, bg='#ADEAEA') # painel de botões
         self.fr_buttons.grid(row=1, column=1, sticky="ew")
 
-        self.btn_open = Button(self.fr_buttons, text="OPEN", width=8, command=self.open_segy_file, borderwidth=3, font=('sans 9 bold'))
+        self.btn_open = Button(self.fr_buttons, text="OPEN", width=8, 
+                       command=self.open_segy_file, borderwidth=3, 
+                       font=('sans 9 bold'), bg="#71B9F4", fg='grey20')
         self.btn_open.grid(row=0, column=0, padx=5, pady=5)
 
-        self.btn_freq_filters = Button(self.fr_buttons, text="FREQ FILTERS", width=12, command=self.open_freq_filters_window, borderwidth=3, font=('sans 9 bold'))
-        self.btn_freq_filters.grid(row=0, column=2, padx=5, pady=5)
+        self.btn_freq_filters = Button(self.fr_buttons, text="FREQ FILTERS", 
+                               width=12, command=self.open_freq_filters_window, 
+                               borderwidth=3, font=('sans 9 bold'), 
+                               bg="#56AF59", fg='grey20')
+        self.btn_freq_filters.grid(row=0, column=1, padx=5, pady=5)
 
-        self.btn_ampl_filters = Button(self.fr_buttons, text="AMPLIT FILTERS", command=self.open_amplitude_filters_window, font=('sans 9 bold'))
-        self.btn_ampl_filters.grid(row=0, column=4, padx=5, pady=5)
+        self.btn_ampl_filters = Button(self.fr_buttons, text="AMPLIT FILTERS", 
+                                command=self.open_amplitude_filters_window, font=('sans 9 bold'),
+                                bg='#56AF59', fg='grey20')
+        self.btn_ampl_filters.grid(row=0, column=2, padx=5, pady=5)
 
-        self.btn_conv = Button(self.fr_buttons, text="CONVOLUTION", command=self.open_conv_window, font=('sans 9 bold'))
-        self.btn_conv.grid(row=0, column=5, padx=5, pady=5)
+        self.btn_conv = Button(self.fr_buttons, text="CONVOLUTION", 
+                               command=self.open_conv_window, font=('sans 9 bold'),
+                            bg="#F8C374", fg='grey20')
+        self.btn_conv.grid(row=0, column=3, padx=5, pady=5)
 
-        self.btn_deconv = Button(self.fr_buttons, text="DECONVOLUTION", command=self.open_deconv_window, font=('sans 9 bold'))
-        self.btn_deconv.grid(row=0, column=6, padx=5, pady=5)
+        self.btn_deconv = Button(self.fr_buttons, text="DECONVOLUTION", 
+                                 command=self.open_deconv_window, font=('sans 9 bold'),
+                                 bg='#F8C374', fg='grey20')
+        self.btn_deconv.grid(row=0, column=4, padx=5, pady=5)
 
-        self.btn_interpretation = Button(self.fr_buttons, text="INTERPRETATION", command=self.open_interpretation_window, font=('sans 9 bold'))
+        self.btn_interpretation = Button(self.fr_buttons, text="INTERPRETATION", 
+                                         command=self.open_interpretation_window, font=('sans 9 bold'),
+                                         bg="#D69494", fg='grey20')
         self.btn_interpretation.grid(row=0, column=7, padx=5, pady=5)
 
-        btn_navigation = Button(self.fr_buttons, text="NAVIGATION", command=self.open_navigation_window, font=('sans 9 bold'))
+        btn_navigation = Button(self.fr_buttons, text="NAVIGATION", 
+                                command=self.open_navigation_window, font=('sans 9 bold'),
+                                bg="#6C838F", fg='grey20')
         btn_navigation.grid(row=0, column=8, padx=5, pady=5)        
 
         self.btn_freq_filters.config(state='disabled')
@@ -112,7 +128,8 @@ class SeismicApp:
         self.btn_interpretation.config(state='disabled')
 
         palettes = ['Greys', 'seismic', 'seismic_r', 'binary', 'Spectral', 'PuOr', 'BrBG', 'PRGn', 'RdBu']
-        self.pal_combobox = ttk.Combobox(self.fr_buttons, textvariable=StringVar(value='Palettes'), state="readonly", width=10)
+        self.pal_combobox = ttk.Combobox(self.fr_buttons, textvariable=StringVar(value='Palettes'), 
+                                         state="readonly", width=10)
         self.pal_combobox['values'] = palettes
         self.pal_combobox.set('Greys') 
         self.pal_combobox.bind("<<ComboboxSelected>>", self.pal_choice)
@@ -175,7 +192,7 @@ class SeismicApp:
                 self.datatype = 0 if min(self.data[10]) < 0 else 1
 
                 self.txt_edit.insert(END, f'\nFile:  {self.filename}\n')                
-                self.txt_edit.insert(END, f'Data Type: {"Não Envelopado" if self.datatype == 0 else "Envelopado"}\n')
+                self.txt_edit.insert(END, f'Data Type: {"Not Enveloped" if self.datatype == 0 else "Enveloped"}\n')
 
                 self.txt_edit.insert(END, f'Traces: {self.nt}, Samples: {self.ns}, Sample Rate: {self.sr*1000:.4f} ms\n')
 
@@ -214,8 +231,10 @@ class SeismicApp:
         self.e_trf = Entry(self.work_window, width=10)
         self.e_trf.place(x=155, y=90)
         
-        Button(self.work_window, width=12, text='Image View', command=self.img_view).place(x=90, y=140)
-        Button(self.work_window, width=10, text='Save', command=self.save_limits).place(x=90, y=190)
+        Button(self.work_window, width=12, text='Image View', command=self.img_view,
+               font=('sans 9 bold'), bg="#307FA7", fg='white').place(x=90, y=140)
+        Button(self.work_window, width=10, text='Save', command=self.save_limits,
+               font=('sans 9 bold'), bg="#43AB1E", fg='white').place(x=97, y=190)
 
     def img_view(self):
         """Exibe a Image sísmica na janela de plotagem."""
@@ -521,19 +540,16 @@ class SeismicApp:
         elif filter_type == 'Deconv Bottom' and self.deconv_bot_data is not None:
             scene = [self.deconv_bot_data, self.cmin, self.cmax, self.deconv_bot_title, self.sigfilt, self.cmap]
             self.scenes.loc[len(self.scenes)] = scene
-            self.txt_edit.insert(END, '\nBottom Deconvolution saved.')
             self.deconv_bot_window.destroy()
 
         elif filter_type == 'Deconv Predictive' and self.deconv_pred_data is not None:
             scene = [self.deconv_pred_data, self.cmin, self.cmax, self.deconv_pred_title, self.sigfilt, self.cmap]
             self.scenes.loc[len(self.scenes)] = scene
-            self.txt_edit.insert(END, '\nPredictive Deconvolution saved.')
             self.deconv_pred_window.destroy()
 
         elif filter_type == 'Deconv Wavelet' and self.deconv_wav_data is not None:
             scene = [self.deconv_wav_data, self.cmin, self.cmax, self.deconv_wav_title, self.sigfilt, self.cmap]
             self.scenes.loc[len(self.scenes)] = scene
-            self.txt_edit.insert(END, '\nWavelet Deconvolution saved.')
             self.deconv_wav_window.destroy()
 
         else:
@@ -555,10 +571,14 @@ class SeismicApp:
         freq_filters_window.resizable(width=False, height=False)
         freq_filters_window.attributes('-toolwindow', True)
        
-        Button(freq_filters_window, text='Amplitude SPECTRUM', width=22, command=self.open_amplitude_spectrum_window).place(x=40, y=50)
-        Button(freq_filters_window, text='SPECTROGRAM', width=22, command=self.open_spectrogram_window).place(x=40, y=100)
-        Button(freq_filters_window, text='BAND-PASS Filter', width=22, command=self.open_band_pass_window).place(x=40, y=150)
-        Button(freq_filters_window, text='SPECTRAL WHITENING', width=22, command=self.open_spectral_whitening_window).place(x=40, y=200)
+        Button(freq_filters_window, text='Amplitude SPECTRUM', width=22, command=self.open_amplitude_spectrum_window,
+               bg="#4CAF50", fg='white').place(x=40, y=50)
+        Button(freq_filters_window, text='SPECTROGRAM', width=22, command=self.open_spectrogram_window,
+               bg="#3F8F41", fg='white').place(x=40, y=100)
+        Button(freq_filters_window, text='BAND-PASS FILTER', width=22, command=self.open_band_pass_window,
+               bg="#295E2B", fg='white').place(x=40, y=150)
+        Button(freq_filters_window, text='SPECTRAL WHITENING', width=22, command=self.open_spectral_whitening_window,
+               bg="#1D421E", fg='white').place(x=40, y=200)
 
     def open_amplitude_spectrum_window(self):
         self.amplit_spectrum = Toplevel(self.root)
@@ -574,7 +594,8 @@ class SeismicApp:
         self.amplit_spectrum.attributes('-toolwindow', True)
 
         self.select_data_combobox(self.amplit_spectrum, 70, 30)
-        Button(self.amplit_spectrum, text='APPLY', width=10, command=self.plot_amplitude_spectrum).place(x=85, y=80)
+        Button(self.amplit_spectrum, text='Apply', width=10, command=self.plot_amplitude_spectrum,
+               bg="#2196F3", fg='white').place(x=85, y=80)
 
     def plot_amplitude_spectrum(self):
         try:
@@ -611,7 +632,8 @@ class SeismicApp:
         self.spectrogram_window.attributes('-toolwindow', True)
 
         self.select_data_combobox(self.spectrogram_window, 70, 30)
-        Button(self.spectrogram_window, text='APPLY', width=10, command=self.plot_spectrogram).place(x=85, y=80)
+        Button(self.spectrogram_window, text='Apply', width=10, command=self.plot_spectrogram,
+               bg="#2196F3", fg='white').place(x=85, y=80)
 
     def plot_spectrogram(self):
         try:
@@ -653,8 +675,10 @@ class SeismicApp:
         self.e_HC = Entry(self.band_pass_window, width=10)
         self.e_HC.place(x=140, y=100)
         
-        Button(self.band_pass_window, width=12, text='Apply', command=self.apply_band_pass).place(x=80, y=140)
-        Button(self.band_pass_window, width=12, text='Save', command=lambda: self._save_filter_result('Band Pass')).place(x=80, y=180)
+        Button(self.band_pass_window, width=12, text='Apply', command=self.apply_band_pass,
+               bg="#307FA7", fg='white').place(x=80, y=140)
+        Button(self.band_pass_window, width=12, text='Save', command=lambda: self._save_filter_result('Band Pass'),
+               bg="#43AB1E", fg='white').place(x=80, y=180)
         
         self.select_data_combobox(self.band_pass_window, 80, 30)
 
@@ -704,13 +728,11 @@ class SeismicApp:
         self.var = IntVar(value=1)
 
         Label(self.whitening_window, text="Using Method ZCA").place(x=70, y=70)
-        
-        # Radiobutton(self.whitening_window, text='ZCA method', variable=self.var, value=1, command=lambda: self._set_method('zca')).place(x=60, y=70)
-        # Radiobutton(self.whitening_window, text='PCA method', variable=self.var, value=2, command=lambda: self._set_method('pca')).place(x=60, y=90)
-        # Radiobutton(self.whitening_window, text='Cholesky method', variable=self.var, value=3, command=lambda: self._set_method('cholesky')).place(x=60, y=110)
-        
-        Button(self.whitening_window, width=10, text="Apply", command=self.apply_spectral_whitening).place(x=75, y=100)
-        Button(self.whitening_window, width=10, text='Save', command=lambda: self._save_filter_result('Spectral Whitening')).place(x=75, y=140)
+                
+        Button(self.whitening_window, width=10, text="Apply", command=self.apply_spectral_whitening,
+               bg="#307FA7", fg='white').place(x=75, y=100)
+        Button(self.whitening_window, width=10, text='Save', command=lambda: self._save_filter_result('Spectral Whitening'),
+               bg="#43AB1E", fg='white').place(x=75, y=140)
 
         self.select_data_combobox(self.whitening_window, 70, 30)
 
@@ -774,8 +796,10 @@ class SeismicApp:
         amp_filters_window.resizable(width=False, height=False)
         amp_filters_window.attributes('-toolwindow', True)
 
-        Button(amp_filters_window, width=10, text='AGC', command=self.open_AGC_window).place(x=60, y=30)
-        Button(amp_filters_window, width=10, text='STA/LTA', command=self.open_STALTA_window).place(x=60, y=80)
+        Button(amp_filters_window, width=10, text='AGC', command=self.open_AGC_window,
+               bg="#4CAF50", fg='white').place(x=60, y=30)
+        Button(amp_filters_window, width=10, text='STA/LTA', command=self.open_STALTA_window,
+               bg="#3A853D", fg='white').place(x=60, y=80)
 
     def open_AGC_window(self):
         """Abre a janela para o Filter AGC."""
@@ -795,8 +819,10 @@ class SeismicApp:
         self.e_agc_window = Entry(self.agc_window, width=7)  # Nome único
         self.e_agc_window.place(x=130, y=75)
 
-        Button(self.agc_window, width=12, text='Apply', command=self.apply_agc).place(x=75, y=130)
-        Button(self.agc_window, width=12, text='Save', command=lambda: self._save_filter_result('AGC')).place(x=75, y=180)
+        Button(self.agc_window, width=12, text='Apply', command=self.apply_agc,
+               bg="#307FA7", fg='white').place(x=75, y=130)
+        Button(self.agc_window, width=12, text='Save', command=lambda: self._save_filter_result('AGC'),
+               bg="#43AB1E", fg='white').place(x=75, y=180)
 
         self.select_data_combobox(self.agc_window, 70, 30)
 
@@ -858,8 +884,10 @@ class SeismicApp:
         self.e_lta.place(x=170, y=130)
         self.e_lta.insert(0, '20')
         
-        Button(self.stalta_window, width=12, text='Apply', command=self.apply_stalta).place(x=90, y=170)
-        Button(self.stalta_window, width=12, text='Save', command=lambda: self._save_filter_result('STALTA')).place(x=90, y=210)
+        Button(self.stalta_window, width=12, text='Apply', command=self.apply_stalta,
+               bg="#307FA7", fg='white').place(x=90, y=170)
+        Button(self.stalta_window, width=12, text='Save', command=lambda: self._save_filter_result('STALTA'),
+               bg="#43AB1E", fg='white').place(x=90, y=210)
 
         self.select_data_combobox(self.stalta_window, 70, 30)
 
@@ -925,20 +953,17 @@ class SeismicApp:
         self.conv_window.resizable(width=False, height=False)
         self.conv_window.attributes('-toolwindow', True)
 
-        Button(self.conv_window, width=25, text='with Ricker Wavelet', command=self.open_ricker_wavelet_window).place(x=50, y=30)
-        Button(self.conv_window, width=25, text='with Ormsby Wavelet', command=self.open_ormsby_wavelet_window).place(x=50, y=70)
-
-        # Button(self.conv_window, width=25, text='Apply Ricker Wavelet', command=self.apply_ricker_Wavelet).place(x=50, y=80)
-        # Button(self.conv_window, width=25, text='Save Ricker Wavelet', command=self._save_filter_result('Conv Ricker')).place(x=50, y=120)
-        # Button(self.conv_window, width=25, text='Apply Ormsby Wavelet', command=self.apply_ormsby_Wavelet).place(x=50, y=160)
-        # Button(self.conv_window, width=25, text='Save Ormsby Wavelet', command=self._save_filter_result('Conv Ormsby')).place(x=50, y=200)
+        Button(self.conv_window, width=25, text='with Ricker Wavelet', command=self.open_ricker_wavelet_window,
+               bg="#E58A02", fg='white').place(x=50, y=30)
+        Button(self.conv_window, width=25, text='with Ormsby Wavelet', command=self.open_ormsby_wavelet_window,
+               bg="#9D5F02", fg='white').place(x=50, y=70)
 
         # self.select_data_combobox(self.conv_window, 100, 30)
 
     def open_ricker_wavelet_window(self):
         """Abre a janela para a Wavelet Ricker."""
         self.ricker_window = Toplevel(self.root)
-        self.ricker_window.title('RICKER Wavelet')
+        self.ricker_window.title('RICKER WAVELET CONVOLUTION')
         w = 250
         h = 230
         ws = self.ricker_window.winfo_screenwidth()
@@ -953,8 +978,10 @@ class SeismicApp:
         self.e_PW = Entry(self.ricker_window, width=7)
         self.e_PW.place(x=140, y=70)
 
-        Button(self.ricker_window, width=12, text='Apply', command=self.apply_ricker_wavelet).place(x=75, y=120)
-        Button(self.ricker_window, width=12, text='Save', command=lambda: self._save_filter_result('Conv Ricker')).place(x=75, y=160)
+        Button(self.ricker_window, width=12, text='Apply', command=self.apply_ricker_wavelet,
+               bg="#307FA7", fg='white').place(x=75, y=120)
+        Button(self.ricker_window, width=12, text='Save', command=lambda: self._save_filter_result('Conv Ricker'),
+               bg="#43AB1E", fg='white').place(x=75, y=160)
 
         self.select_data_combobox(self.ricker_window, 70, 30)   
 
@@ -996,7 +1023,7 @@ class SeismicApp:
     def open_ormsby_wavelet_window(self):
             """Abre a janela para a Wavelet Ormsby."""
             self.ormsby_window = Toplevel(self.root)
-            self.ormsby_window.title('Ormsby Wavelet CONVOLUTION')
+            self.ormsby_window.title('ORMSBY WAVELET CONVOLUTION')
             w = 260
             h = 360
             ws = self.ormsby_window.winfo_screenwidth()
@@ -1044,8 +1071,10 @@ class SeismicApp:
             if None in (self.f1_ormsby, self.f2_ormsby, self.f3_ormsby, self.f4_ormsby):
                 return  # Usuário cancelou
 
-            Button(self.ormsby_window, width=12, text='Apply', command=self.apply_ormsby_wavelet).place(x=75, y=240)
-            Button(self.ormsby_window, width=12, text='Save', command=lambda: self._save_filter_result('Conv Ormsby')).place(x=75, y=280)
+            Button(self.ormsby_window, width=12, text='Apply', command=self.apply_ormsby_wavelet,
+                   bg="#307FA7", fg='white').place(x=75, y=240)
+            Button(self.ormsby_window, width=12, text='Save', command=lambda: self._save_filter_result('Conv Ormsby'),
+                   bg="#43AB1E", fg='white').place(x=75, y=280)
 
             self.select_data_combobox(self.ormsby_window, 70, 30)   
 
@@ -1099,9 +1128,12 @@ class SeismicApp:
         self.deconv_window.resizable(width=False, height=False)
         self.deconv_window.attributes('-toolwindow', True)
 
-        Button(self.deconv_window, width=25, text='Bottom Pulse Deconvolution', command=self.apply_bottom_pulse_deconvolution).place(x=65, y=80)
-        Button(self.deconv_window, width=25, text='Predictive Deconvolution', command=self.apply_predictive_deconvolution).place(x=65, y=130)
-        Button(self.deconv_window, width=25, text='Wavelet Deconvolution', command=self.apply_wavelet_deconvolution).place(x=65, y=180)
+        Button(self.deconv_window, width=25, text='Bottom Pulse Deconvolution', command=self.apply_bottom_pulse_deconvolution,
+               bg="#B48CD2", fg='white').place(x=65, y=80)
+        Button(self.deconv_window, width=25, text='Predictive Deconvolution', command=self.apply_predictive_deconvolution,
+               bg="#9071A8", fg='white').place(x=65, y=130)
+        Button(self.deconv_window, width=25, text='Wavelet Deconvolution', command=self.apply_wavelet_deconvolution,
+               bg="#6A537B", fg='white').place(x=65, y=180)
 
         self.select_data_combobox(self.deconv_window, 100, 30)
 
@@ -1127,8 +1159,10 @@ class SeismicApp:
         self.filter_order.insert(0, '10')
         self.filter_order.place(x=100, y=30)
 
-        Button(self.deconv_pred_window, width=12, text='Apply', command=self.predictive_deconv).place(x=65, y=70)
-        Button(self.deconv_pred_window, width=12, text='Save', command=lambda: self._save_filter_result('Deconv Predictive')).place(x=65, y=110)
+        Button(self.deconv_pred_window, width=12, text='Apply', command=self.predictive_deconv,
+               bg="#307FA7", fg='white').place(x=65, y=70)
+        Button(self.deconv_pred_window, width=12, text='Save', command=lambda: self._save_filter_result('Deconv Predictive'),
+               bg="#43AB1E", fg='white').place(x=65, y=110)
 
     def predictive_deconv(self):
 
@@ -1190,7 +1224,7 @@ class SeismicApp:
     def apply_wavelet_deconvolution(self):
         """Placeholder para deConvolution Wavelet."""
         self.deconv_wav_window = Toplevel(self.root)
-        self.deconv_wav_window.title('Wavelet DECONVOLUTION')
+        self.deconv_wav_window.title('WAVELET DECONVOLUTION')
         w = 220
         h = 280
         ws = self.deconv_wav_window.winfo_screenwidth()
@@ -1213,8 +1247,10 @@ class SeismicApp:
         self.e_f1 = Entry(self.deconv_wav_window, width=7)
         self.e_f1.place(x=140, y=130)
 
-        Button(self.deconv_wav_window, width=12, text='Apply', command=self.apply_wav_deconv).place(x=65, y=170)
-        Button(self.deconv_wav_window, width=12, text='Save', command=lambda: self._save_filter_result('Deconv Wavelet')).place(x=65, y=210)
+        Button(self.deconv_wav_window, width=12, text='Apply', command=self.apply_wav_deconv,
+               bg="#307FA7", fg='white').place(x=65, y=170)
+        Button(self.deconv_wav_window, width=12, text='Save', command=lambda: self._save_filter_result('Deconv Wavelet'),
+               bg="#43AB1E", fg='white').place(x=65, y=210)
 
     def apply_wav_deconv(self):
         """Aplica a deConvolution Wavelet."""
@@ -1266,10 +1302,14 @@ class SeismicApp:
 
         # self.select_data_combobox(self.deconv_bot_window, 100, 30)
 
-        Button(self.deconv_bot_window, width=25,text='Select Seabottom Pulse', command=self.select_window_bottom_pulse).place(x=60, y=40)
-        Button(self.deconv_bot_window, width=15, text='Show Pulse', command=self.extract_pulse).place(x=90, y=80)
-        Button(self.deconv_bot_window, width=20, text='Show Deconvol', command=self.deconv_bottom_pulse).place(x=70, y=120)
-        Button(self.deconv_bot_window, width=12, text='Save', command=lambda: self._save_filter_result('Deconv Bottom')).place(x=95, y=160)
+        Button(self.deconv_bot_window, width=25,text='Select Seabottom Pulse', command=self.select_window_bottom_pulse, 
+               bg="#307FA7", fg='white').place(x=60, y=40)
+        Button(self.deconv_bot_window, width=15, text='Show Pulse', command=self.extract_pulse,
+               bg="#307FA7", fg='white').place(x=90, y=80)
+        Button(self.deconv_bot_window, width=20, text='Show Deconvol', command=self.deconv_bottom_pulse,
+               bg="#307FA7", fg='white').place(x=70, y=120)
+        Button(self.deconv_bot_window, width=12, text='Save', command=lambda: self._save_filter_result('Deconv Bottom'),
+               bg="#43AB1E", fg='white').place(x=95, y=160)
 
     def select_window_bottom_pulse(self):
         """Seleciona janela para capturar Pulse do fundo."""
@@ -1424,7 +1464,7 @@ class SeismicApp:
     def open_interpretation_window(self):
         self.win = Toplevel(self.root)
         self.win.title("Seismic Interpretation")
-        self.win.geometry("1000x700")
+        self.win.geometry("1500x700")
 
         self.reflectors = {}
         self.current_reflector = StringVar(value="A")
@@ -1630,7 +1670,6 @@ class SeismicApp:
         # Save referências
         self._current_canvas = canvas
         self._current_ax = ax
-
 
     def export_reflectors_csv(self):
         """Exporta Reflectores para CSV."""
@@ -1939,11 +1978,14 @@ class SeismicApp:
         self.navegation.attributes('-toolwindow', True)
 
         Label(self.navegation, text="Extract coordinates from SEG-Y").pack(pady=10)
-        export_dxf_button = Button(self.navegation, text="Export to DXF", command=self.exportDXF, width=20)
+        export_dxf_button = Button(self.navegation, text="Export to DXF", command=self.exportDXF, 
+                                   bg="#4A4A4A", fg='white',width=20)
         export_dxf_button.pack(pady=5)
 
-        export_csv_button = Button(self.navegation, text="Export to CSV", command=self.exportCSV, width=20)
+        export_csv_button = Button(self.navegation, text="Export to CSV", command=self.exportCSV, 
+                                   bg="#979696", fg='white', width=20)
         export_csv_button.pack(pady=5)
+
 
 if __name__ == '__main__':
     root = Tk()
