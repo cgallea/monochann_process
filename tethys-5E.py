@@ -13,7 +13,7 @@ from scipy.ndimage import shift
 from scipy import interpolate
 from scipy.linalg import toeplitz
 from scipy.signal import lfilter, chirp, fftconvolve
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, UnivariateSpline
 
 import csv
 import ezdxf
@@ -261,6 +261,7 @@ class SeismicApp:
 
                 self.nyquist = 0.5 / self.sr
                 self.fs = 1 / self.sr
+                self.dt = self.sr
 
                 # Headers
                 headers = segyio.tracefield.keys
@@ -330,8 +331,47 @@ class SeismicApp:
         
         Button(self.work_window, width=12, text='Image View', command=self.img_view,
                font=('sans 9 bold'), bg="#307FA7", fg='white').place(x=90, y=140)
+
+        Button(self.work_window, width=12, text='Trace View', command=self.trace_view,
+               font=('sans 9 bold'), bg="#99A730", fg='white').place(x=90, y=180)
+        
         Button(self.work_window, width=10, text='Save', command=self.save_limits,
-               font=('sans 9 bold'), bg="#43AB1E", fg='white').place(x=97, y=190)
+               font=('sans 9 bold'), bg="#1EAB6C", fg='white').place(x=97, y=220)
+        
+    def trace_view(self):
+        """Exibe um Trace sísmico na janela de plotagem."""
+
+        tmi = int(self.e_tmi.get() or 0)
+        tmf = int(self.e_tmf.get() or self.ns * self.sr * 1000)
+        self.tri = int(self.e_tri.get() or 0)
+        self.trf = int(self.e_trf.get() or self.nt)
+        self.spi = int(tmi / self.sr / 1000)
+        self.spf = int(tmf / self.sr / 1000)
+
+        self.sigdata = self.data[self.tri:self.trf, self.spi:self.spf]
+
+        try:
+            times = lambda x: x * self.sr * 1000
+            samples = lambda x: x / (self.sr * 1000)
+            tr_centre = (self.trf-self.tri) // 2            
+
+            fig, ax = plt.subplots(figsize=(12, 6))
+            plt.title(f'Trace View - File:{self.filename}  - Trace: {tr_centre} (middle)', fontsize=12)
+  
+            x = np.arange(self.spf-self.spi)
+            y = self.sigdata[tr_centre]   # plot a trace
+            plt.plot(x, y, color='blue')
+            # plt.hlines(0, 0, (self.spf-self.spi), color='k', linestyles='dashdot')
+            ax.set_xlabel('Samples', fontsize=9)
+            ax.set_ylabel('Signal', fontsize=9)
+            secax = ax.secondary_xaxis('top', functions=(times, samples))
+            secax.set_xlabel('Time (ms)', fontsize=9)
+            plt.grid()
+            plt.tight_layout()
+            plt.show()
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to display trace view: {e}")
 
     def img_view(self):
         """Exibe a Image sísmica na janela de plotagem."""
@@ -369,18 +409,21 @@ class SeismicApp:
 
     def save_limits(self):
         """saved a visualização atual na lista de cenas."""
-        if self.limits:  # area com limites definidos 
-            scene = [self.sigdata, self.cmin, self.cmax, 'Working Window', self.sigfilt, self.palet]
-            self.scenes.loc[len(self.scenes)] = scene
-            self.txt_edit.insert(END, f'\nWorking Window saved:\n Start Trace: {self.tri}, End Trace: {self.trf}\n')
-            self.txt_edit.insert(END, f' Start Time: {self.spi * self.sr * 1000:.0f} ms, End Time: {self.spf * self.sr * 1000:.0f} ms\n')
-        else:  # area total selecionada
-            scene = [self.sigdata, self.cmin, self.cmax, 'Working Window', self.sigfilt, self.palet]
-            self.scenes.loc[len(self.scenes)] = scene
-            self.txt_edit.insert(END, f'\nWorking Window saved:\n Start Trace: {self.tri}, End Trace: {self.trf}\n')
-            self.txt_edit.insert(END, f' Start Time: {self.spi * self.sr * 1000:.0f} ms, End Time: {self.spf * self.sr * 1000:.0f} ms\n')
-            self.limits == False
-        self.work_window.destroy()
+        try:
+            if self.limits:  # area com limites definidos 
+                scene = [self.sigdata, self.cmin, self.cmax, 'Working Window', self.sigfilt, self.palet]
+                self.scenes.loc[len(self.scenes)] = scene
+                self.txt_edit.insert(END, f'\nWorking Window saved:\n Start Trace: {self.tri}, End Trace: {self.trf}\n')
+                self.txt_edit.insert(END, f' Start Time: {self.spi * self.sr * 1000:.0f} ms, End Time: {self.spf * self.sr * 1000:.0f} ms\n')
+            else:  # area total selecionada
+                scene = [self.sigdata, self.cmin, self.cmax, 'Working Window', self.sigfilt, self.palet]
+                self.scenes.loc[len(self.scenes)] = scene
+                self.txt_edit.insert(END, f'\nWorking Window saved:\n Start Trace: {self.tri}, End Trace: {self.trf}\n')
+                self.txt_edit.insert(END, f' Start Time: {self.spi * self.sr * 1000:.0f} ms, End Time: {self.spf * self.sr * 1000:.0f} ms\n')
+                self.limits == False
+            self.work_window.destroy()
+        except Exception as e:
+            messagebox.showerror("Error", f"Select Image Limits first")
 
     def img_show(self, filename, title, image_data, tri, trf, spi, spf, sr, v_min, v_max, colors, filt):
         """Exibe a Image sísmica com opções de zoom e sliders."""
@@ -1001,7 +1044,7 @@ class SeismicApp:
         freq_filters_window = Toplevel(self.root)
         freq_filters_window.title("FREQUENCIES FILTERS")
         w = 250
-        h = 360
+        h = 380
         ws = self.root.winfo_screenwidth()  
         hs = self.root.winfo_screenheight()  
         x = (ws/2) - (w/2)
@@ -1014,12 +1057,14 @@ class SeismicApp:
                bg="#4CAF50", fg='white').place(x=40, y=50)
         Button(freq_filters_window, text='SPECTROGRAM', width=22, command=self.open_spectrogram_window,
                bg="#3F8F41", fg='white').place(x=40, y=100)
+        Button(freq_filters_window, text='FWHM Spectrum', width=22, command=self.open_FWHM_window,
+               bg="#1E753C", fg='white').place(x=40, y=150)
         Button(freq_filters_window, text='BAND-PASS FILTER', width=22, command=self.open_band_pass_window,
-               bg="#295E2B", fg='white').place(x=40, y=150)
+               bg="#295E2B", fg='white').place(x=40, y=200)
         Button(freq_filters_window, text='ORMSBY FILTER', width=22, command=self.open_ormsby_filter_window,
-               bg="#1D421E", fg='white').place(x=40, y=200)
-        Button(freq_filters_window, text='SPECTRAL WHITENING', width=22, command=self.open_spectral_whitening_window,
                bg="#1D421E", fg='white').place(x=40, y=250)
+        Button(freq_filters_window, text='SPECTRAL WHITENING', width=22, command=self.open_spectral_whitening_window,
+               bg="#1D421E", fg='white').place(x=40, y=300)
 
     def open_amplitude_spectrum_window(self):
         self.amplit_spectrum = Toplevel(self.root)
@@ -1093,6 +1138,125 @@ class SeismicApp:
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to plot spectrogram: {e}")
+
+    def open_FWHM_window(self):
+        """Abre a janela para o Spectrumgrama."""
+        self.FWHM_spectrum_window = Toplevel(self.root)
+        self.FWHM_spectrum_window.title("FWHM Spectrum")
+        w = 250
+        h = 250
+        ws = self.root.winfo_screenwidth()  
+        hs = self.root.winfo_screenheight()  
+        x = (ws/2) - (w/2)
+        y = (hs/2) - (h/2)
+        self.FWHM_spectrum_window.geometry('%dx%d+%d+%d' % (w, h, x, y))
+        self.FWHM_spectrum_window.resizable(width=False, height=False)
+        self.FWHM_spectrum_window.attributes('-toolwindow', True)
+
+        self.select_data_combobox(self.FWHM_spectrum_window, 70, 30)
+        Button(self.FWHM_spectrum_window, text='Apply', width=10, command=self.plot_FWHM_spectrum,
+               bg="#2196F3", fg='white').place(x=80, y=80)
+
+        mess = "Full Width at Half Maximum (FWHM)\nMethod for obtaining approximate frequencies in enveloped seismic signals."
+        label_mess = Label(self.FWHM_spectrum_window, text=mess, justify="center", wraplength=200)
+        label_mess.place(x=25, y=130)               
+
+    def get_fwhm(self, segment):
+        if len(segment) == 0 or np.max(segment) == 0: return None
+        norm_env = segment / np.max(segment)
+        indices = np.where(norm_env >= 0.5)[0]
+        if len(indices) < 2: return None
+        return (indices[-1] - indices[0]) * self.dt
+    
+    def run_analysis(self, window_size, overlap, blanking_ms=12.0):
+            n_traces, n_samples = self.sigdata.shape
+
+            freq_list, amp_list, t_list = [], [], []
+            
+            # Cálculo do índice de blanking baseado no dt da classe
+            blank_idx = int(blanking_ms / (self.dt * 1000))
+            
+            for i in range(n_traces):
+                trace = self.sigdata[i, :]
+                if len(trace) <= blank_idx + window_size: continue
+
+                # Busca o fundo do mar após o blanking
+                search_zone = trace[blank_idx:]
+                bottom_idx = np.argmax(search_zone) + blank_idx
+                
+                step = window_size - overlap
+                for start in range(bottom_idx, n_samples - window_size, step):
+                    segment = trace[start : start + window_size]
+                    a_max = np.max(segment)
+                    w_target = self.get_fwhm(segment)
+                    
+                    if w_target and w_target > 0 and a_max > 1e-6: # Evita divisão por zero e log de zero
+                        f_app = 1 / (2 * w_target)
+                        t_target = (start + np.argmax(segment)) * self.dt
+                        
+                        freq_list.append(f_app)
+                        amp_list.append(a_max)
+                        t_list.append(t_target)
+
+            return np.array(freq_list), np.array(amp_list), np.array(t_list)
+
+    def plot_FWHM_spectrum(self):
+        freq_max_limit = 3500 # limits of X axis 
+        try:
+            freqs, amplitudes, tempos = self.run_analysis(window_size=100, overlap=50)
+
+            # Filtragem pelo limite máximo definido pelo usuário
+            mask_limit = freqs <= freq_max_limit
+            freqs = freqs[mask_limit]
+            amplitudes = amplitudes[mask_limit]
+            tempos = tempos[mask_limit]
+
+            # if len(freqs) < 10: continue
+
+            # --- CÁLCULO DA SPLINE DE CONTORNO ---
+            sort_idx = np.argsort(freqs)
+            f_s, a_s = freqs[sort_idx], amplitudes[sort_idx]
+
+            # Criar bins para encontrar os máximos locais para a spline
+            bins = np.linspace(f_s.min(), f_s.max(), 40)
+            bin_centers = (bins[:-1] + bins[1:]) / 2
+            max_envelope = [np.percentile(a_s[(f_s >= bins[i]) & (f_s < bins[i+1])], 95) 
+                            if np.any((f_s >= bins[i]) & (f_s < bins[i+1])) else np.nan 
+                            for i in range(len(bins)-1)]
+            
+            valid = ~np.isnan(max_envelope)
+            spline_func = UnivariateSpline(bin_centers[valid], np.array(max_envelope)[valid], s=0.5)
+            f_smooth = np.linspace(f_s.min(), f_s.max(), 200)
+
+            # --- PLOTAGEM ---
+            plt.figure(figsize=(10, 6))
+            t_ms = tempos * 1000
+            sc = plt.scatter(freqs, amplitudes, c=t_ms, cmap='gist_rainbow', alpha=0.4, s=15, edgecolors='none')
+            
+            # Plot da Spline de Contorno
+            plt.plot(f_smooth, spline_func(f_smooth), color='blue', lw=1.5, label='Contour (Spline 95%)')
+
+            cbar = plt.colorbar(sc, pad=0.02)
+            cbar.ax.invert_yaxis() 
+            cbar.set_label('Time (ms)')
+            
+            plt.title(f"FWHM Spectrum Analysis (Max: {freq_max_limit} Hz)\nFile: {os.path.basename(self.filename)}")
+            plt.xlabel("Estimated Frequency (Hz)")
+            plt.ylabel("Peak Amplitude")
+            
+            # O limite em X agora respeita o valor amigável definido
+            plt.xlim(np.min(freqs), freq_max_limit)
+            plt.ylim(0, np.max(amplitudes) * 1.1)
+            plt.legend()
+            plt.grid(True, alpha=0.15)
+
+            plt.tight_layout()
+            plt.show(block=False)
+
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to plot FWHM spectrum: {e}") 
+        self.plot_FWHM_spectrum.destroy()
 
     def open_band_pass_window(self):
         """Abre a janela para o Filter Band Pass."""
