@@ -303,7 +303,7 @@ class SeismicApp:
         self.work_window = Toplevel(self.root)
         self.work_window.title("WORKING WINDOW")
         w = 275
-        h = 290
+        h = 310
         ws = self.work_window.winfo_screenwidth()
         hs = self.work_window.winfo_screenheight()
         x = (ws/2) - (w/2)
@@ -330,8 +330,49 @@ class SeismicApp:
         
         Button(self.work_window, width=12, text='Image View', command=self.img_view,
                font=('sans 9 bold'), bg="#307FA7", fg='white').place(x=90, y=140)
+        
+        Button(self.work_window, width=12, text='Trace View', command=self.trace_view,
+               font=('sans 9 bold'), bg="#99A730", fg='white').place(x=90, y=180)
+        
         Button(self.work_window, width=10, text='Save', command=self.save_limits,
-               font=('sans 9 bold'), bg="#43AB1E", fg='white').place(x=97, y=190)
+               font=('sans 9 bold'), bg="#1EAB6C", fg='white').place(x=97, y=220)
+        
+
+    def trace_view(self):
+        """Exibe um Trace sísmico na janela de plotagem."""
+
+        tmi = int(self.e_tmi.get() or 0)
+        tmf = int(self.e_tmf.get() or self.ns * self.sr * 1000)
+        self.tri = int(self.e_tri.get() or 0)
+        self.trf = int(self.e_trf.get() or self.nt)
+        self.spi = int(tmi / self.sr / 1000)
+        self.spf = int(tmf / self.sr / 1000)
+
+        self.sigdata = self.data[self.tri:self.trf, self.spi:self.spf]
+
+        try:
+            times = lambda x: x * self.sr * 1000
+            samples = lambda x: x / (self.sr * 1000)
+            tr_centre = (self.trf-self.tri) // 2            
+
+            fig, ax = plt.subplots(figsize=(12, 6))
+            plt.title(f'Trace View - File:{self.filename}  - Trace: {tr_centre} (middle)', fontsize=12)
+  
+            x = np.arange(self.spf-self.spi)
+            y = self.sigdata[tr_centre]   # plot a trace
+            plt.plot(x, y, color='blue')
+            # plt.hlines(0, 0, (self.spf-self.spi), color='k', linestyles='dashdot')
+            ax.set_xlabel('Samples', fontsize=9)
+            ax.set_ylabel('Signal', fontsize=9)
+            secax = ax.secondary_xaxis('top', functions=(times, samples))
+            secax.set_xlabel('Time (ms)', fontsize=9)
+            plt.grid()
+            plt.tight_layout()
+            plt.show()
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to display trace view: {e}")
+
 
     def img_view(self):
         """Exibe a Image sísmica na janela de plotagem."""
