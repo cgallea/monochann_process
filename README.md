@@ -1,24 +1,42 @@
 pip install numpy
+
 pip install math 
+
 pip install os
+
 pip install matplotlib
+
 pip install matplotlib.pyplot
+
 pip install matplotlib.widgets
+
 pip install matplotlib.figure 
+
 pip install matplotlib.backends.backend_tkagg
+
 pip install tkinter
+
 pip install segyio
+
 pip install pandas
+
 pip install scipy
+
 pip install dxfwrite
+
 pip install utm
+
 pip install csv
+
 pip install ezdxf
+
 pip install dxfwrite 
+
 pip install utm
 
 
 <<<<<<< HEAD
+
 With the python language already installed, it can be executed with the command:
 python tethys-X.py  (where X is the latest version of this repository)
 
